@@ -34,7 +34,9 @@ class FileItem(object):
             self.nbytes_read += self.get_nbytes(line)
 
         else:
+            self.current_line = len(self.lines) - 5
             line = self.GetContent()
+            self.current_line += 5
 
         return line
 
@@ -58,9 +60,20 @@ class FileItem(object):
         else:
             total_bytes = os.stat(self._filename).st_size
             # In this calculation vim excludes the current view point from the total.
-            #
 
             return math.floor((self.nbytes_read / total_bytes) * 100.0)
+
+
+class ButtonPanel(wx.Panel):
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+        self.prev_button = wx.Button(self, label="Previous")
+        self.next_button = wx.Button(self, label="Next")
+        button_panel_sizer = wx.GridBagSizer()
+        button_panel_sizer.Add(self.prev_button, pos=(0, 0))
+        button_panel_sizer.Add(self.next_button, pos=(0, 1))
+        self.SetSizer(button_panel_sizer)
+        self.SetBackgroundColour("white")
 
 
 class Frame(wx.Frame):
@@ -85,18 +98,15 @@ class Frame(wx.Frame):
         sizer.AddGrowableCol(0)
         sizer.AddGrowableRow(0)
 
-        button_panel = wx.Panel(self)
-        self.prev_button = wx.Button(button_panel, label="Previous")
-        self.next_button = wx.Button(button_panel, label="Next")
-        button_panel_sizer = wx.GridBagSizer()
-        button_panel_sizer.Add(self.prev_button, pos=(0, 0))
-        button_panel_sizer.Add(self.next_button, pos=(0, 1))
-        button_panel.SetSizer(button_panel_sizer)
-        button_panel.SetBackgroundColour("white")
-        self.next_button.Bind(wx.EVT_BUTTON, self.OnNextButton)
-        self.prev_button.Bind(wx.EVT_BUTTON, self.OnPrevButton)
 
-        sizer.Add(button_panel, pos=(1, 0), flag=wx.ALL | wx.EXPAND, border=10)
+        self.statusbar = self.CreateStatusBar(1)
+        self.statusbar.SetStatusText('-')
+
+        self.button_panel = ButtonPanel(parent=self)
+        self.button_panel.next_button.Bind(wx.EVT_BUTTON, self.OnNextButton)
+        self.button_panel.prev_button.Bind(wx.EVT_BUTTON, self.OnPrevButton)
+
+        sizer.Add(self.button_panel, pos=(1, 0), flag=wx.ALL | wx.EXPAND, border=10)
         self.SetBackgroundColour("white")
         self.SetSizerAndFit(sizer)
 
@@ -132,7 +142,9 @@ class Frame(wx.Frame):
         self.textControl.ClearAll()
         self.textControl.AddText(content)
         self.textControl.SetEditable(False)
-        print(self._fileReader.GetProgress())
+
+        progressAsString = "{:.2f}".format(self._fileReader.GetProgress())
+        self.statusbar.SetStatusText(progressAsString)
 
 if __name__ == "__main__":
     app = wx.App()
