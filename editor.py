@@ -13,7 +13,6 @@ class FileItem(object):
         self.current_line = 0
 
         self.lines = []
-        self.nbytes_read = 0
 
     @property
     def next_line(self):
@@ -34,46 +33,33 @@ class FileItem(object):
         with open(self._filename, "r", newline="") as f:
             self.lines = f.readlines()
 
-        self.nbytes_read = self.get_nbytes(self.GetCurrentContent())
-
-    def get_nbytes(self, line):
-        return len(line.encode('utf-8'))
-
     def GetNextContent(self):
-        if (self.next_line <= len(self.lines)):
-            line = self.GetContent(self.next_line)
-            self.nbytes_read += self.get_nbytes(line)
+        if (self.next_line < len(self.lines)):
             self.current_line = self.next_line
 
-        else:
-            line = self.GetCurrentContent()
+        line = self.GetCurrentContent()
 
         return line
 
     def GetPreviousContent(self):
 
         if (self.previous_line >= 0):
-            line = self.GetContent(self.previous_line)
-            self.nbytes_read -= self.get_nbytes(line)
             self.current_line = self.previous_line
 
-        else:
-            line = self.GetCurrentContent()
+        line = self.GetCurrentContent()
 
         return line
 
     def GetProgress(self):
-        if (self.current_line == 0):
-            return 0.0
+        top_length = self.current_line
+        bottom_length = len(self.lines) - self.next_line
 
-        elif (self.current_line == len(self.lines)):
-            return 100.0
+        total_bytes_above_view = top_length
+        total_bytes_below_view = bottom_length
         
-        else:
-            total_bytes = os.stat(self._filename).st_size
-            # In this calculation vim excludes the current view point from the total.
+        total = total_bytes_above_view + total_bytes_below_view
 
-            return math.floor((self.nbytes_read / total_bytes) * 100.0)
+        return math.floor(total_bytes_above_view / total  * 100.0)
 
 
 class ButtonPanel(wx.Panel):
