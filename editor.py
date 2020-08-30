@@ -11,42 +11,54 @@ class FileItem(object):
     def __init__(self, filename):
         self._filename = filename
         self.current_line = 0
+
         self.lines = []
         self.nbytes_read = 0
 
-    def GetContent(self):        
-        return "".join(self.lines[self.current_line:self.current_line + FileItem.N_LINES])
+    @property
+    def next_line(self):
+        return self.current_line + 5
+
+    @property
+    def previous_line(self):
+        return self.current_line - 5
+
+    def GetCurrentContent(self):
+        return self.GetContent(self.current_line)
+
+    def GetContent(self, offset):        
+        return "".join(self.lines[offset:offset + FileItem.N_LINES])
 
     def set_filename(self, filename):
         self._filename = filename
         with open(self._filename, "r", newline="") as f:
             self.lines = f.readlines()
 
-        self.nbytes_read = self.get_nbytes(self.GetContent())
+        self.nbytes_read = self.get_nbytes(self.GetCurrentContent())
 
     def get_nbytes(self, line):
         return len(line.encode('utf-8'))
 
     def GetNextContent(self):
-        if (self.current_line < len(self.lines)):
-            self.current_line += 5
-            line = self.GetContent()
+        if (self.next_line <= len(self.lines)):
+            line = self.GetContent(self.next_line)
             self.nbytes_read += self.get_nbytes(line)
+            self.current_line = self.next_line
 
         else:
-            self.current_line = len(self.lines) - 5
-            line = self.GetContent()
-            self.current_line += 5
+            line = self.GetCurrentContent()
 
         return line
 
     def GetPreviousContent(self):
-        line = self.GetContent()
 
-        if (self.current_line > 0):
+        if (self.previous_line >= 0):
+            line = self.GetContent(self.previous_line)
             self.nbytes_read -= self.get_nbytes(line)
-            self.current_line -= 5
-            line = self.GetContent()
+            self.current_line = self.previous_line
+
+        else:
+            line = self.GetCurrentContent()
 
         return line
 
@@ -134,7 +146,7 @@ class Frame(wx.Frame):
 
     def OnDisplayFilename(self, pathname):
         self._fileReader.set_filename(pathname)
-        content = self._fileReader.GetContent()
+        content = self._fileReader.GetCurrentContent()
         self.ChangeContent(content)
 
     def ChangeContent(self, content):
